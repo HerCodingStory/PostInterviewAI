@@ -40,6 +40,15 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-/uploads
+
 /bin
 /obj
+/uploads
+
+bin/
+obj/
+uploads/
+appsettings.Development.json
+*.user
+*.db
+*.log
