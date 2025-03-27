@@ -1,0 +1,15 @@
+body {
+    font-family: sans-serif;
+    text-align: center;
+    padding: 10px;
+  }
+  button {
+    margin: 5px;
+    padding: 10px;
+    font-weight: bold;
+  }
+  #status {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #333;
+  }

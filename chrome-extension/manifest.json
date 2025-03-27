@@ -1,0 +1,18 @@
+{
+    "manifest_version": 3,
+    "name": "PostInterviewAI",
+    "version": "1.0",
+    "description": "Practice mock interviews and get AI-powered feedback.",
+    "permissions": ["tabs"],
+    "host_permissions": ["<all_urls>"],
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": "icon.png"
+    },
+    "icons": {
+      "48": "icon.png"
+    },
+    "background": {
+      "service_worker": "background.js"
+    }
+  }
