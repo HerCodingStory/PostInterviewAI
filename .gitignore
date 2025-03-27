@@ -1,6 +1,7 @@
 # Ignore backend build files
 /backend/bin/
 /backend/obj/
+/backend/venv/
 /backend/uploads/
 /backend/appsettings.Development.json
 

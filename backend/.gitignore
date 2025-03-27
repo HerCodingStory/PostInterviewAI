@@ -44,7 +44,9 @@ next-env.d.ts
 /bin
 /obj
 /uploads
+/venv
 
+venv/
 bin/
 obj/
 uploads/
