@@ -1,91 +1,108 @@
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 using System.Diagnostics;
+using System.Net.Http.Headers;
+using System.Text;
 
 namespace PostInterviewAI.Controllers
 {
+    public class InterviewFeedback
+    {
+        public string Clarity { get; set; }
+        public string Structure { get; set; }
+        public string Content { get; set; }
+        public string TechnicalAccuracy { get; set; }
+    }
+
     [ApiController]
     [Route("api/audio")]
     public class AudioController : ControllerBase
     {
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IWebHostEnvironment _env;
+
+        public AudioController(IHttpClientFactory httpClientFactory, IWebHostEnvironment env)
+        {
+            _httpClientFactory = httpClientFactory;
+            _env = env;
+        }
+
         [HttpPost("upload")]
         public async Task<IActionResult> Upload(IFormFile file)
         {
             if (file == null || file.Length == 0)
-                return BadRequest("No file uploaded");
+                return BadRequest(new { error = "No file uploaded" });
 
-            var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
-            Directory.CreateDirectory(uploadsDir);
+            var uploadsPath = Path.Combine(_env.ContentRootPath, "uploads");
+            Directory.CreateDirectory(uploadsPath);
+            var filePath = Path.Combine(uploadsPath, file.FileName);
 
-            var filePath = Path.Combine(uploadsDir, file.FileName);
             using (var stream = System.IO.File.Create(filePath))
             {
                 await file.CopyToAsync(stream);
             }
 
-            var transcription = await TranscribeWithWhisper(filePath);
-            var feedback = await GetChatGptFeedbackAsync(transcription);
-            return Ok(feedback);
+            // Step 1: Run Whisper script
+            var transcript = await TranscribeWithWhisper(filePath);
+
+            // Step 2: Call ChatGPT with prompt
+            var feedback = await GetFeedbackFromChatGPT(transcript);
+
+            return new JsonResult(feedback);
         }
 
         private async Task<string> TranscribeWithWhisper(string filePath)
         {
-            var startInfo = new ProcessStartInfo
+            var psi = new ProcessStartInfo
             {
                 FileName = "python3",
                 Arguments = $"whisper/transcribe.py \"{filePath}\"",
                 RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
+                UseShellExecute = false
             };
-
-            using var process = Process.Start(startInfo);
+            var process = Process.Start(psi);
             string output = await process.StandardOutput.ReadToEndAsync();
-            string error = await process.StandardError.ReadToEndAsync();
-
-            process.WaitForExit();
-
-            if (process.ExitCode != 0)
-            {
-                Console.Error.WriteLine("Whisper error: " + error);
-                return $"Transcription failed: {error}";
-            }
-
             return output.Trim();
         }
 
-        private async Task<string> GetChatGptFeedbackAsync(string transcript)
+        private async Task<InterviewFeedback> GetFeedbackFromChatGPT(string transcript)
         {
-            var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
-            if (string.IsNullOrWhiteSpace(apiKey))
-                return "OpenAI API key is missing.";
+            var prompt = @$"
+                Analyze the following interview transcript.
+                Return your response as a JSON object with the following structure:
 
-            var client = new HttpClient();
-            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+                {{
+                ""clarity"": ""..."",
+                ""structure"": ""..."",
+                ""content"": ""..."",
+                ""technical_accuracy"": ""...""
+                }}
 
-            var payload = new
+                Transcript:
+                {transcript}";
+
+            var client = _httpClientFactory.CreateClient();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Environment.GetEnvironmentVariable("OPENAI_API_KEY"));
+
+            var requestBody = new
             {
                 model = "gpt-3.5-turbo",
-                messages = new[]
-                {
-                    new { role = "system", content = "You are an expert interview coach. Analyze the following answer and give constructive feedback on clarity, structure, content, and technical accuracy." },
-                    new { role = "user", content = transcript }
+                messages = new[] {
+                    new { role = "user", content = prompt }
                 }
             };
 
-            var content = new StringContent(System.Text.Json.JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
-
+            var content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
             var response = await client.PostAsync("https://api.openai.com/v1/chat/completions", content);
-            var responseString = await response.Content.ReadAsStringAsync();
+            var responseJson = await response.Content.ReadAsStringAsync();
 
-            using var doc = System.Text.Json.JsonDocument.Parse(responseString);
-            var reply = doc.RootElement
-                        .GetProperty("choices")[0]
-                        .GetProperty("message")
-                        .GetProperty("content")
-                        .GetString();
+            using var doc = JsonDocument.Parse(responseJson);
+            var messageContent = doc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString();
 
-            return reply ?? "No feedback returned.";
+            return JsonSerializer.Deserialize<InterviewFeedback>(messageContent, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
         }
     }
 }
