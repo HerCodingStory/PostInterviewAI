@@ -9,7 +9,14 @@ import axios from "axios";
 export default function Home() {
   const [recording, setRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  type Feedback = {
+    clarity: string;
+    structure: string;
+    content: string;
+    technicalAccuracy: string;
+  };
+  
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
 
@@ -46,7 +53,8 @@ export default function Home() {
       const response = await axios.post("http://localhost:5117/api/audio/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      setFeedback(response.data); // Assume server returns a string of feedback
+      const result = response.data;
+      setFeedback(result);
     } catch (error) {
       console.error("Upload failed", error);
     }
@@ -73,9 +81,14 @@ export default function Home() {
       </div>
 
       {feedback && (
-        <div className="mt-6 p-4 border rounded bg-gray-100 w-full max-w-xl" style={{color: 'black'}}>
-          <h2 className="font-semibold mb-2">AI Feedback</h2>
-          <p>{feedback}</p>
+        <div className="mt-6 p-4 border rounded bg-gray-100 w-full max-w-xl text-left text-black">
+          <h2 className="font-semibold mb-2">✅ AI Feedback</h2>
+          <ul className="list-disc pl-5 space-y-2">
+            <li><strong>Clarity:</strong> {feedback.clarity}</li>
+            <li><strong>Structure:</strong> {feedback.structure}</li>
+            <li><strong>Content:</strong> {feedback.content}</li>
+            <li><strong>Technical Accuracy:</strong> {feedback.technicalAccuracy}</li>
+          </ul>
         </div>
       )}
     </main>
