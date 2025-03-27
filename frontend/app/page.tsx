@@ -43,7 +43,7 @@ export default function Home() {
     formData.append("file", audioBlob, "interview.webm");
 
     try {
-      const response = await axios.post("http://localhost:5000/api/audio/upload", formData, {
+      const response = await axios.post("http://localhost:5117/api/audio/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setFeedback(response.data); // Assume server returns a string of feedback
@@ -73,7 +73,7 @@ export default function Home() {
       </div>
 
       {feedback && (
-        <div className="mt-6 p-4 border rounded bg-gray-100 w-full max-w-xl">
+        <div className="mt-6 p-4 border rounded bg-gray-100 w-full max-w-xl" style={{color: 'black'}}>
           <h2 className="font-semibold mb-2">AI Feedback</h2>
           <p>{feedback}</p>
         </div>
