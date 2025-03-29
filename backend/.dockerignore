@@ -1,0 +1,7 @@
+bin/
+obj/
+venv/
+uploads/
+*.user
+*.vs
+.DS_Store

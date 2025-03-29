@@ -15,3 +15,6 @@
 
 # Logs
 *.log
+backend/AWSCLIV2.pkg
+backend/backend.zip
+backend/Dockerfile
