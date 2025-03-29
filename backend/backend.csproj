@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AWSSDK.Comprehend" Version="3.7.400.123" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.3" />
   </ItemGroup>
 
